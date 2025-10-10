@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
 
         // Detect and decode multiple QR codes
         std::vector<cv::Point> poly;
-        std::string text = qrDetector.detectAndDecode(frame, poly);
+        std::string text = qrDetector.detectAndDecodeCurved(frame, poly);
         int detectedCount = 0;
         if (!text.empty() && poly.size() >= 4) {
             const cv::Point* ptsArr = poly.data();
