@@ -22,7 +22,7 @@ if (PkgConfig_FOUND)
 endif()
 
 if (QRENCODE_FOUND)
-    add_executable(qrcode_generator ${CMAKE_CURRENT_SOURCE_DIR}/tools/qrcode_generator.cpp)
+    add_executable(qrcode_generator ${CMAKE_CURRENT_SOURCE_DIR}/qrcode_generator.cpp)
     target_include_directories(qrcode_generator PRIVATE ${QRENCODE_INCLUDE_DIRS})
     target_link_libraries(qrcode_generator PRIVATE ${OpenCV_LIBS} ${QRENCODE_LIBRARIES})
     target_compile_options(qrcode_generator PRIVATE ${QRENCODE_CFLAGS_OTHER})
