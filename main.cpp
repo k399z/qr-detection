@@ -210,25 +210,62 @@ int main(int argc, char** argv) {
         if (!cap.read(frame) || frame.empty()) break;
 
         // Detect and decode multiple QR codes
-        std::vector<cv::Point> poly;
-        std::string text = qrDetector.detectAndDecodeCurved(frame, poly);
+        std::vector<std::string> decoded;
+        // Use a fixed-type Mat (Nx4, CV_32FC2) as required by OpenCV for multi points
+        cv::Mat points; // rows = num codes, cols = 4, type = CV_32FC2
+        bool found = qrDetector.detectAndDecodeMulti(frame, decoded, points);
+
         int detectedCount = 0;
-        if (!text.empty() && poly.size() >= 4) {
-            const cv::Point* ptsArr = poly.data();
-            int npts = static_cast<int>(poly.size());
-            cv::polylines(frame, &ptsArr, &npts, 1, true, cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
-            cv::Point center(0,0);
-            for (const auto& p : poly) center += p;
-            center.x /= (int)poly.size();
-            center.y /= (int)poly.size();
-            cv::putText(frame, text, center + cv::Point(-20, -10),
-                        cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
-            detectedCount = 1;
+        if (found && !points.empty()) {
+            // Normalize to CV_32FC2
+            cv::Mat pts;
+            if (points.type() == CV_32FC2) pts = points;
+            else {
+                points.convertTo(pts, CV_32F);
+                if (pts.channels() != 2) pts = pts.reshape(2); // ensure 2-channel
+            }
+
+            int codes = 0;
+            int rows = pts.rows, cols = pts.cols;
+            if (cols == 4 && rows >= 1) {
+                codes = rows;
+            } else if (rows == 4 && cols >= 1) {
+                codes = cols;
+            } else if ((rows * cols) % 4 == 0) {
+                codes = (rows * cols) / 4;
+                // reshape to (codes, 4)
+                pts = pts.reshape(2, codes);
+                rows = pts.rows; cols = pts.cols;
+            }
+            detectedCount = codes;
+
+            for (int i = 0; i < codes; ++i) {
+                std::vector<cv::Point> poly;
+                poly.reserve(4);
+                cv::Point2f center(0.f, 0.f);
+                for (int k = 0; k < 4; ++k) {
+                    cv::Vec2f v;
+                    if (cols == 4 && rows == codes) v = pts.at<cv::Vec2f>(i, k);
+                    else if (rows == 4 && cols == codes) v = pts.at<cv::Vec2f>(k, i);
+                    else v = pts.at<cv::Vec2f>(i, k); // after reshape above
+                    center.x += v[0]; center.y += v[1];
+                    poly.emplace_back(cv::Point(cvRound(v[0]), cvRound(v[1])));
+                }
+                center.x /= 4.f; center.y /= 4.f;
+
+                const cv::Point* ptsPoly = poly.data();
+                int npts = static_cast<int>(poly.size());
+                cv::polylines(frame, &ptsPoly, &npts, 1, true, cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
+
+                const std::string label = (i < static_cast<int>(decoded.size()) ? decoded[i] : std::string());
+                cv::putText(frame, label, cv::Point(cvRound(center.x) - 20, cvRound(center.y) - 10),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+            }
         }
         
         double dur = nowMs() - start;
-    std::string statsText = cv::format("avg %.2f ms  fps %.1f  QR %d",
-                       stats.updateAvgMs(dur), stats.tickFps(), detectedCount);
+        std::string statsText = cv::format("avg %.2f ms  fps %.1f  QR %d",
+                           stats.updateAvgMs(dur), stats.tickFps(), detectedCount);
         cv::putText(frame, statsText, cv::Point(10, 30),
                     cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0,255,0), 2);
 
