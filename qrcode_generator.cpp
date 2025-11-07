@@ -26,7 +26,7 @@ struct State {
     std::string defaultOut;    // optional save path
 
     State()
-        : text("Hello, QR!"), version(0), eclIdx(1), scale(15), quietZone(4), showHelp(false) {}
+        : text("Hello, QR!"), version(0), eclIdx(1), scale(15), quietZone(7), showHelp(false) {}
 };
 
 static inline QRecLevel eclFromIdx(int idx) {
@@ -89,18 +89,7 @@ static void overlayInfo(Mat& canvas, const State& s) {
     put(format("Version: %d (v/V)  ECL: %s (e/E)", s.version, eclName(s.eclIdx).c_str()));
     put(format("Scale: %d (+/- or =/_)  QuietZone: %d ([/ ] or {/})", s.scale, s.quietZone));
     if (!s.defaultOut.empty()) put("Save: s -> " + s.defaultOut); else put("Save: s -> auto name");
-    if (s.showHelp) {
-        y += 8;
-        put("Keys:", Scalar(200,200,200));
-        put("  Type to append, Backspace to delete", Scalar(200,200,200));
-        put("  v/V version, e/E error correction", Scalar(200,200,200));
-        put("  +/- or =/_ scale, [/ ] or {/} quiet zone", Scalar(200,200,200));
-        put("  r random, c clear, s save, h help, q/ESC quit", Scalar(200,200,200));
-    }
-}
-
-static std::string randomText() {
-    static const char alnum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    if (s.showHelp) {UVWXYZabcdefghijklmnopqrstuvwxyz";
     int len = 12 + (std::rand() % 13);
     std::string s; s.reserve(len);
     for (int i = 0; i < len; ++i) s.push_back(alnum[std::rand() % (sizeof(alnum)-1)]);
@@ -114,6 +103,17 @@ static std::string autoFileName(const State& s) {
 int main(int argc, char** argv) {
     std::srand((unsigned)std::time(nullptr));
     State s;
+        y += 8;
+        put("Keys:", Scalar(200,200,200));
+        put("  Type to append, Backspace to delete", Scalar(200,200,200));
+        put("  v/V version, e/E error correction", Scalar(200,200,200));
+        put("  +/- or =/_ scale, [/ ] or {/} quiet zone", Scalar(200,200,200));
+        put("  r random, c clear, s save, h help, q/ESC quit", Scalar(200,200,200));
+    }
+}
+
+static std::string randomText() {
+    static const char alnum[] = "0123456789ABCDEFGHIJKLMNOPQRST
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if ((a == "-t" || a == "--text") && i + 1 < argc) s.text = argv[++i];
